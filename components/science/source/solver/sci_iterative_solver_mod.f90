@@ -1871,8 +1871,8 @@ contains
     class(abstract_vector_type), intent(inout) :: x
     class(abstract_vector_type), intent(inout) :: b
 
-    integer(i_def) :: iter
-    real(r_def) :: init_norm, final_norm
+    integer(i_def) :: iter, final_iter
+    real(r_def) :: init_norm, final_norm, old_norm
     real(r_def) :: a1, a2, w, a_over_b, wa_over_b
 
     class(abstract_vector_type), allocatable :: z
@@ -1880,7 +1880,9 @@ contains
     class(abstract_vector_type), allocatable :: xp
     class(abstract_vector_type), allocatable :: xo
 
-    ! Chebyshev iteration for solving M y = f with preconditioner D
+    logical(kind=l_def) :: converged
+
+    ! Chebyshev iteration for solving M x = b with preconditioner D
 
     ! Set initial guess
     call x%set_scalar(0.0_r_def)
@@ -1889,9 +1891,14 @@ contains
     call x%duplicate(xo)
     call xo%set_scalar(0.0_r_def)
     call x%duplicate(z)
+    call z%set_scalar(0.0_r_def)
     call x%duplicate(r)
 
-    if ( self%monitor_convergence ) init_norm = max(1.0_r_def, b%norm())
+
+    if ( self%monitor_convergence ) then
+      init_norm = max(1.0_r_def, b%norm())
+      old_norm = init_norm
+    end if
 
     ! Set up scalars
     a1 = 2.0_r_def/(self%lmax - self%lmin)
@@ -1902,7 +1909,7 @@ contains
     do iter = 1, self%max_iter
 
       ! r = b-M*xo
-      call self%lin_op%apply(xo,z)
+      if ( iter > 1 ) call self%lin_op%apply(xo,z)
       call r%axpby(1.0_r_def, b, -1.0_r_def, z)
 
       ! z = D^{-1}.r
@@ -1912,7 +1919,26 @@ contains
       w = 1.0_r_def/(1.0_r_def - w/(4.0_r_def*a2**2))
       wa_over_b = w * a_over_b
       call x%axpby(wa_over_b, z, w, xo)
-      call x%axpy(1.0_r_def-w,xp)
+      call x%axpy(1.0_r_def-w, xp)
+
+      ! residiual = norm(b - M*x)
+      if ( self%monitor_convergence ) then
+        final_iter = iter
+        call self%lin_op%apply(x,z) ! z = M.x
+        call z%axpy(-1.0_r_def, b)  ! z = M.x-b
+        final_norm = z%norm()
+        if (    ( final_norm/init_norm <= self%r_tol ) &
+           .or. ( final_norm <= self%a_tol ) ) then
+          converged = .true.
+          exit
+        else
+          write(log_scratch_space, &
+              '("chebyshev[",I4,"], residual       = ",E16.8, ", initial = ",E16.8, ", rate = ",E16.8 )') &
+                iter, final_norm/init_norm, init_norm, old_norm/final_norm
+          old_norm = final_norm
+          call log_event(log_scratch_space,LOG_LEVEL_INFO)
+        end if
+      end if
 
       if ( iter < self%max_iter ) then
         ! xp = xo
@@ -1923,17 +1949,15 @@ contains
       end if
 
     end do
-    ! residiual = norm(b - M*x)
+
     if ( self%monitor_convergence ) then
-      call self%lin_op%apply(x,z) ! z = M.x
-      call z%axpy(-1.0_r_def, b)  ! z = M.x-b
-      final_norm = z%norm()
-      write(log_scratch_space, &
-          '("chebyshev[",I4,"], redidual = ",E16.8)') self%max_iter, final_norm/init_norm
-      if ( self%fail_on_non_converged ) then
-        call log_event(log_scratch_space,LOG_LEVEL_ERROR)
+          write(log_scratch_space, &
+              '("chebyshev[",I4,"], final residual = ",E16.8, ", initial = ",E16.8, ", rate = ",E16.8 )') &
+                final_iter, final_norm/init_norm, init_norm, old_norm/final_norm
+      if ( .not. converged .and.  self%fail_on_non_converged ) then
+          call log_event(log_scratch_space,LOG_LEVEL_ERROR)
       else
-        call log_event(log_scratch_space,LOG_LEVEL_INFO)
+          call log_event(log_scratch_space,LOG_LEVEL_INFO)
       end if
     end if
 
