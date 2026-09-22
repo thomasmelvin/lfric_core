@@ -1886,8 +1886,6 @@ contains
     class(abstract_vector_type), allocatable :: xp
     class(abstract_vector_type), allocatable :: xo
 
-    logical(kind=l_def) :: converged
-
     integer(kind=i_def) :: n_fields, n
 
     logical(kind=l_def), allocatable :: converged(:)
@@ -1964,7 +1962,7 @@ contains
                   iter, final_norm(n)/init_norm(n), init_norm(n), old_norm(n)/final_norm(n)
             call log_event(log_scratch_space,LOG_LEVEL_INFO)
           end do
-            old_norm = final_norm
+          old_norm = final_norm
         end if
 
       if ( iter < self%max_iter ) then
