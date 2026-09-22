@@ -1965,6 +1965,8 @@ contains
           old_norm = final_norm
         end if
 
+      end if
+
       if ( iter < self%max_iter ) then
         ! xp = xo
         call xp%copy(xo)
