@@ -1942,10 +1942,10 @@ contains
         call self%lin_op%apply(x,z) ! z = M.x
         call z%axpy(-1.0_r_def, b)  ! z = M.x-b
 
-        do n = n_fields,1,-1
+        do n = 1, n_fields
           final_norm(n) = z%field_norm(n)
           write(log_scratch_space, &
-               '("chebyshev[",I4,I2,"], residual       = ",E16.8, ", initial = ",E16.8, ", rate = ",E16.8 )') &
+               '("chebyshev[",I4,",",I2,"], residual       = ",E16.8, ", initial = ",E16.8, ", rate = ",E16.8 )') &
                  iter, n, final_norm(n)/init_norm(n), init_norm(n), old_norm(n)/final_norm(n)
           call log_event(log_scratch_space,LOG_LEVEL_INFO)
           if (   final_norm(n)/init_norm(n) < self%r_tol &
