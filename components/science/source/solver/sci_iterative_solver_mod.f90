@@ -1921,7 +1921,6 @@ contains
     w = 1.0_r_def
 
     do iter = 1, self%max_iter
-      write(6,*) 'Chebyshev iterations ',iter
       ! r = b-M*xo
       if ( iter > 1 ) call self%lin_op%apply(xo,z)
       call r%axpby(1.0_r_def, b, -1.0_r_def, z)
