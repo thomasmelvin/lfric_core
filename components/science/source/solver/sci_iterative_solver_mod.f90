@@ -1945,8 +1945,8 @@ contains
         do n = n_fields,1,-1
           final_norm(n) = z%field_norm(n)
           write(log_scratch_space, &
-               '("chebyshev[",I4,"], residual       = ",E16.8, ", initial = ",E16.8, ", rate = ",E16.8 )') &
-                 iter, final_norm(n)/init_norm(n), init_norm(n), old_norm(n)/final_norm(n)
+               '("chebyshev[",I4,I2,"], residual       = ",E16.8, ", initial = ",E16.8, ", rate = ",E16.8 )') &
+                 iter, n, final_norm(n)/init_norm(n), init_norm(n), old_norm(n)/final_norm(n)
           call log_event(log_scratch_space,LOG_LEVEL_INFO)
           if (   final_norm(n)/init_norm(n) < self%r_tol &
             .or. final_norm(n) < self%a_tol ) then
